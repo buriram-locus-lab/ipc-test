@@ -116,7 +116,12 @@ function adminData() {
   var rows = v.map(function (r) {
     var o = {}; head.forEach(function (h, i) { o[h] = r[i] instanceof Date ? r[i].toISOString() : r[i]; }); return o;
   });
-  return { ok: true, header: head, rows: rows.reverse(), sheetUrl: SpreadsheetApp.getActiveSpreadsheet().getUrl() };
+  var fsh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FB_SHEET), fb = [];
+  if (fsh && fsh.getLastRow() > 1) {
+    var fv = fsh.getDataRange().getValues(), fh = fv.shift();
+    fb = fv.map(function (r) { var o = {}; fh.forEach(function (h, i) { o[h] = r[i] instanceof Date ? r[i].toISOString() : r[i]; }); return o; });
+  }
+  return { ok: true, header: head, rows: rows.reverse(), fbHeader: FB_HEADER, fb: fb, sheetUrl: SpreadsheetApp.getActiveSpreadsheet().getUrl() };
 }
 
 /* ---------- helpers ---------- */

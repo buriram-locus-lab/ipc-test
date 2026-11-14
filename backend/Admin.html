@@ -32,6 +32,17 @@ td.n{text-align:right;font-family:var(--m);font-variant-numeric:tabular-nums}
 .pill{display:inline-block;border-radius:99px;padding:1px 10px;font-size:.8rem;font-weight:600;color:#fff}
 .muted{color:var(--muted)}.small{font-size:.86rem}
 .err{color:#a3261c}
+h2{font-size:1.1rem;margin:0 0 4px}
+.fbt td{white-space:normal;vertical-align:top}
+.fbt td.t{min-width:260px}
+.fbt td:first-child{white-space:nowrap}
+.bar{display:inline-block;height:8px;border-radius:4px;background:var(--C);vertical-align:middle;margin-right:6px}
+.bar.r{background:var(--P)}
+details summary{cursor:pointer;color:var(--acc);font-size:.86rem}
+details ul{margin:6px 0 0;padding-left:18px;font-size:.88rem}
+details li{margin:2px 0}
+.sub{display:inline-block;border-radius:6px;padding:0 6px;font-size:.75rem;font-weight:600;color:#fff;margin-right:4px}
+.gen li{margin:4px 0}
 </style>
 </head>
 <body>
@@ -44,6 +55,32 @@ td.n{text-align:right;font-family:var(--m);font-variant-numeric:tabular-nums}
   const NAME = { I: "ตัวเอง", P: "ผู้มีอำนาจ", C: "โชคชะตา", none: "ไม่เด่น" };
   const fmt = iso => { if (!iso) return ""; const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }); };
   let DATA = null;
+  const ITEMS = [
+    [1, "I", "การที่ฉันจะได้เป็นผู้นำหรือไม่ ส่วนใหญ่ขึ้นอยู่กับความสามารถของฉันเอง"],
+    [2, "C", "ชีวิตของฉันส่วนใหญ่เป็นไปตามเหตุการณ์ที่เกิดขึ้นโดยบังเอิญ"],
+    [3, "P", "สิ่งที่เกิดขึ้นในชีวิตของฉัน ส่วนใหญ่ขึ้นอยู่กับคนที่มีอำนาจ"],
+    [4, "I", "การที่ฉันจะเกิดอุบัติเหตุทางถนนหรือไม่ ส่วนใหญ่ขึ้นอยู่กับว่าฉันขับรถได้ดีแค่ไหน"],
+    [5, "I", "เมื่อฉันวางแผนอะไรไว้ ฉันค่อนข้างมั่นใจว่าจะทำให้สำเร็จได้"],
+    [6, "C", "หลายครั้ง ฉันไม่สามารถป้องกันตัวเองจากเรื่องร้าย ๆ ที่เกิดขึ้นโดยไม่คาดคิดได้เลย"],
+    [7, "C", "เวลาที่ฉันได้สิ่งที่ต้องการ ส่วนใหญ่มักเป็นเพราะฉันโชคดี"],
+    [8, "P", "แม้ฉันจะมีความสามารถ แต่ถ้าไม่ได้เข้าหาหรือขอการสนับสนุนจากคนที่มีอำนาจ ฉันก็อาจไม่ได้รับเลือกให้เป็นผู้นำ"],
+    [9, "I", "การที่ฉันจะมีเพื่อนมากหรือน้อย ขึ้นอยู่กับว่าฉันเป็นคนนิสัยดีแค่ไหน"],
+    [10, "C", "ฉันมักรู้สึกว่า เมื่อถึงเวลาที่อะไรจะเกิดขึ้นแล้ว สิ่งนั้นก็ต้องเกิดขึ้น"],
+    [11, "P", "ชีวิตของฉันส่วนใหญ่ถูกควบคุมโดยคนที่มีอำนาจ"],
+    [12, "C", "การที่ฉันจะเกิดอุบัติเหตุทางถนนหรือไม่ ส่วนใหญ่เป็นเรื่องของโชค"],
+    [13, "P", "คนทั่วไปอย่างฉันแทบไม่มีทางปกป้องผลประโยชน์ของตัวเองได้ เมื่อผลประโยชน์นั้นขัดกับกลุ่มคนที่มีอำนาจมากเหนือกว่า"],
+    [14, "C", "สำหรับฉัน การวางแผนล่วงหน้าเป็นเวลานานอาจไม่ใช่เรื่องดีเสมอไป เพราะหลายอย่างสุดท้ายก็ขึ้นอยู่กับโชคดีหรือโชคร้าย"],
+    [15, "P", "ถ้าฉันต้องการได้สิ่งที่หวังไว้ ฉันต้องทำให้คนที่มีอำนาจเหนือกว่าฉันพอใจ"],
+    [16, "C", "การที่ฉันจะได้เป็นผู้นำหรือไม่ ขึ้นอยู่กับว่าฉันโชคดีพอที่จะอยู่ถูกที่และถูกเวลา หรือไม่"],
+    [17, "P", "ถ้าคนสำคัญไม่ชอบฉัน ฉันก็คงมีเพื่อนไม่มากนัก"],
+    [18, "I", "ฉันสามารถกำหนดสิ่งที่จะเกิดขึ้นในชีวิตของตัวเองได้เป็นส่วนใหญ่"],
+    [19, "I", "โดยปกติแล้ว ฉันสามารถปกป้องผลประโยชน์ของตัวเองได้"],
+    [20, "P", "การที่ฉันจะเกิดอุบัติเหตุทางถนนหรือไม่ ส่วนใหญ่ขึ้นอยู่กับคนขับรถคนอื่นบนถนน"],
+    [21, "I", "เวลาที่ฉันได้สิ่งที่ต้องการ ส่วนใหญ่มักเป็นเพราะฉันพยายามอย่างหนักเพื่อให้ได้สิ่งนั้นมา"],
+    [22, "P", "เพื่อให้แผนของฉันสำเร็จ ฉันต้องวางแผนให้สอดคล้องกับสิ่งที่คนมีอำนาจเหนือฉันต้องการ"],
+    [23, "I", "ชีวิตของฉันถูกกำหนดโดยสิ่งที่ฉันทำด้วยตัวเอง"],
+    [24, "C", "การที่ฉันจะมีเพื่อนมากหรือน้อย ส่วนใหญ่ขึ้นอยู่กับโชคชะตา"]
+  ];
 
   function deny(msg) {
     app.innerHTML = `<h1>หลังบ้าน · แบบทดสอบ IPC</h1><div class="card"><p class="err">${esc(msg)}</p>
@@ -65,10 +102,45 @@ td.n{text-align:right;font-family:var(--m);font-variant-numeric:tabular-nums}
         ${R.map(r => `<tr><td>${fmt(r.received)}</td><td>${esc(r.label) || '<span class="muted">–</span>'}</td>${["I", "P", "C"].map(k => `<td class="n">${r[k] === "" ? "–" : esc(r[k])}</td>`).join("")}
           <td>${r.lean ? `<span class="pill" style="background:${r.lean === "none" ? "var(--muted)" : `var(--${esc(r.lean)})`}">${NAME[r.lean] || esc(r.lean)}</span>` : "–"}</td>
           <td class="n">${esc(r.answered)}/24</td><td class="n">${r.seconds === "" ? "–" : Math.round(r.seconds / 60 * 10) / 10 + " นาที"}</td></tr>`).join("")}</tbody></table>`
-        : `<p class="muted">ยังไม่มีคำตอบ</p>`}</div>`;
+        : `<p class="muted">ยังไม่มีคำตอบ</p>`}</div>
+      ${fbCard(d.fb || [])}`;
     google.script.run.withSuccessHandler(w => { const el = document.getElementById("who"); if (el && w && w.email) el.textContent = "เข้าสู่ระบบเป็น " + w.email; }).whoAmI();
     document.getElementById("csv").onclick = csv;
+    const fc = document.getElementById("fbcsv"); if (fc) fc.onclick = fbcsv;
     document.getElementById("reload").onclick = () => { app.innerHTML = '<p class="muted">กำลังโหลด…</p>'; load(); };
+  }
+  /* Per-item wording feedback: one row per item, most-flagged first; notes open under each row. */
+  function fbCard(F) {
+    const people = new Set(F.map(r => r.id)).size;
+    if (!F.length) return `<div class="card"><h2>ความเห็นรายข้อ</h2><p class="muted small">ยังไม่มีใครส่งความเห็น</p></div>`;
+    const yes = v => v === true || v === 1 || v === "1" || String(v).toUpperCase() === "TRUE";
+    const S = ITEMS.map(([k, d, t]) => {
+      const rs = F.filter(r => Number(r.item) === k);
+      return { k, d, t, amb: rs.filter(r => yes(r.ambiguous)).length, rer: rs.filter(r => yes(r.reread)).length,
+        notes: rs.filter(r => String(r.note || "").trim()).map(r => ({ who: r.label, note: r.note, at: r.received })) };
+    });
+    const gen = F.filter(r => Number(r.item) === 0 && String(r.note || "").trim());
+    const max = Math.max(1, ...S.map(s => Math.max(s.amb, s.rer)));
+    const order = S.slice().sort((x, y) => (y.amb + y.rer + y.notes.length) - (x.amb + x.rer + x.notes.length) || x.k - y.k);
+    const pct = n => people ? Math.round(n / people * 100) + "%" : "";
+    const cell = (n, cls) => `<td class="n" style="text-align:left">${n ? `<span class="bar ${cls}" style="width:${Math.round(n / max * 60)}px"></span>` : ""}${n} <span class="muted small">${n ? pct(n) : ""}</span></td>`;
+    return `<div class="card tw"><h2>ความเห็นรายข้อ</h2>
+      <p class="small muted">มีผู้ส่งความเห็น ${people} คน · เรียงจากข้อที่ถูกติ๊กหรือมีความเห็นมากที่สุด · % คิดจากจำนวนผู้ส่งความเห็น ไม่ใช่ผู้ทำแบบทดสอบทั้งหมด</p>
+      <div class="acts" style="margin:8px 0"><button class="btn ghost" id="fbcsv">ดาวน์โหลด CSV ความเห็น</button></div>
+      <table class="fbt"><thead><tr><th>ข้อ</th><th>ข้อความ</th><th>กำกวม / งง</th><th>ต้องอ่านซ้ำ</th><th>ความเห็น</th></tr></thead><tbody>
+      ${order.map(s => `<tr><td class="n"><span class="sub" style="background:var(--${s.d})">${s.d}</span>${s.k}</td>
+        <td class="t">${esc(s.t)}${s.notes.length ? `<details><summary>ดูความเห็น ${s.notes.length} รายการ</summary><ul>${s.notes.map(n => `<li>${esc(n.note)} <span class="muted small">— ${esc(n.who) || "ไม่ระบุชื่อ"} · ${fmt(n.at)}</span></li>`).join("")}</ul></details>` : ""}</td>
+        ${cell(s.amb, "")}${cell(s.rer, "r")}<td class="n">${s.notes.length || '<span class="muted">–</span>'}</td></tr>`).join("")}
+      </tbody></table>
+      ${gen.length ? `<h2 style="margin-top:16px">ความเห็นอื่น ๆ (${gen.length})</h2><ul class="gen">${gen.map(r => `<li>${esc(r.note)} <span class="muted small">— ${esc(r.label) || "ไม่ระบุชื่อ"} · ${fmt(r.received)}</span></li>`).join("")}</ul>` : ""}
+    </div>`;
+  }
+  function fbcsv() {
+    const H = DATA.fbHeader, q = v => { const s = String(v == null ? "" : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const body = [H.join(",")].concat(DATA.fb.map(r => H.map(h => q(r[h])).join(","))).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + body], { type: "text/csv;charset=utf-8" }));
+    a.download = "ipc_feedback_" + new Date().toISOString().slice(0, 10) + ".csv"; document.body.appendChild(a); a.click(); a.remove();
   }
   function csv() {
     const H = DATA.header, q = v => { const s = String(v == null ? "" : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };

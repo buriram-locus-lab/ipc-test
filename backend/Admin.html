@@ -91,7 +91,13 @@ details li{margin:2px 0}
   }
   function mean(rows, k) { const v = rows.map(r => r[k]).filter(x => x !== "" && x != null).map(Number); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : "–"; }
 
-  function draw(d) {
+  function draw(raw) {
+    let d = raw;
+    try { if (typeof d === "string") d = JSON.parse(d); } catch (e) { return deny("อ่านข้อมูลจากเซิร์ฟเวอร์ไม่ได้: " + e.message); }
+    if (!d || !Array.isArray(d.rows)) return deny("เซิร์ฟเวอร์ส่งข้อมูลกลับมาว่าง ตรวจว่าได้วาง Code.gs ตัวล่าสุดและทำให้ใช้งานได้เป็นเวอร์ชันใหม่แล้ว");
+    try { paint(d); } catch (e) { deny("แสดงผลไม่สำเร็จ: " + (e && e.message)); }
+  }
+  function paint(d) {
     DATA = d; const R = d.rows;
     app.innerHTML = `<div class="top"><h1>หลังบ้าน · แบบทดสอบ IPC</h1><span class="who" id="who"></span></div>
       <p class="small muted">ระบบทดสอบมาตรวัด แยกจากข้อมูลวิจัย · คะแนนแต่ละด้าน 0–48 (24 = จุดกลาง)</p>
@@ -149,7 +155,7 @@ details li{margin:2px 0}
     a.href = URL.createObjectURL(new Blob(["﻿" + body], { type: "text/csv;charset=utf-8" }));
     a.download = "ipc_test_" + new Date().toISOString().slice(0, 10) + ".csv"; document.body.appendChild(a); a.click(); a.remove();
   }
-  setTimeout(() => { if (!DATA && /ตรวจสิทธิ์/.test(app.textContent)) deny("รอนานเกินไป ระบบยังตอบกลับไม่ได้ มักเกิดจากเบราว์เซอร์เข้าสู่ระบบ Google ไว้หลายบัญชี ให้เปิดลิงก์นี้ในหน้าต่างไม่ระบุตัวตน (Ctrl+Shift+N) แล้วเข้าสู่ระบบด้วยบัญชีเจ้าของชีตบัญชีเดียว"); }, 15000);
+  setTimeout(() => { if (/ตรวจสิทธิ์/.test(app.textContent)) deny("รอนานเกินไป ระบบยังตอบกลับไม่ได้ มักเกิดจากเบราว์เซอร์เข้าสู่ระบบ Google ไว้หลายบัญชี ให้เปิดลิงก์นี้ในหน้าต่างไม่ระบุตัวตน (Ctrl+Shift+N) แล้วเข้าสู่ระบบด้วยบัญชีเจ้าของชีตบัญชีเดียว"); }, 15000);
   if (!(window.google && google.script && google.script.run)) deny("เปิดนอกระบบ Apps Script");
   else google.script.run.withSuccessHandler(w => w && w.ok ? load() : deny("บัญชีนี้ไม่มีสิทธิ์เข้าหลังบ้าน" + (w && w.email ? " (" + w.email + ")" : " หรือยังไม่ได้เข้าสู่ระบบ Google"))).withFailureHandler(e => deny(e.message)).whoAmI();
 })();

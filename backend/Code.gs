@@ -36,8 +36,9 @@ function doPost(e) {
   var out;
   try {
     var b = JSON.parse((e && e.postData && e.postData.contents) || "{}");
-    if (b.action !== "submit") throw new Error("ไม่รู้จักคำสั่ง");
-    out = submit(b.rec);
+    if (b.action === "submit") out = submit(b.rec);
+    else if (b.action === "feedback") out = feedback(b.fb);
+    else throw new Error("ไม่รู้จักคำสั่ง");
   } catch (err) { out = { ok: false, error: String(err && err.message || err) }; }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -64,6 +65,30 @@ function submit(rec) {
     sh.appendRow(row.concat([sc.I, sc.P, sc.C, sc.lean, sc.answered]));
   } finally { lock.releaseLock(); }
   return { ok: true, scores: sc };
+}
+
+/* Wording feedback after the result: one row per item ticked or commented on (item 0 = general comment). */
+var FB_SHEET = "ความเห็นรายข้อ";
+var FB_HEADER = ["id", "received", "label", "item", "ambiguous", "reread", "note"];
+function feedback(fb) {
+  fb = fb || {};
+  var id = String(fb.id || "").replace(/[^a-z0-9]/gi, "").slice(0, 24);
+  if (id.length < 8) throw new Error("รหัสชุดคำตอบไม่ถูกต้อง");
+  var clean = function (t, n) { return String(t || "").replace(/^[=+\-@\s]+/, "").slice(0, n); };
+  var rows = [], now = new Date(), label = clean(fb.label, 40);
+  (fb.items || []).slice(0, 24).forEach(function (x) {
+    var k = +x.k; if (!(k >= 1 && k <= 24)) return;
+    rows.push([id, now, label, k, x.amb ? 1 : 0, x.reread ? 1 : 0, clean(x.note, 500)]);
+  });
+  if (fb.overall) rows.push([id, now, label, 0, "", "", clean(fb.overall, 1000)]);
+  if (!rows.length) throw new Error("ไม่มีความเห็น");
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(FB_SHEET);
+    if (!sh) { sh = ss.insertSheet(FB_SHEET); sh.appendRow(FB_HEADER); sh.setFrozenRows(1); sh.getRange(1, 1, 1, FB_HEADER.length).setFontWeight("bold"); }
+    sh.getRange(sh.getLastRow() + 1, 1, rows.length, FB_HEADER.length).setValues(rows);
+  } finally { lock.releaseLock(); }
+  return { ok: true, saved: rows.length };
 }
 
 function score_(a) {

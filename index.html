@@ -70,11 +70,21 @@ ul.pts{padding-left:1.1em;margin:0 0 1em}
 .lean{border-left:4px solid var(--acc);background:var(--acc-soft);padding:12px 14px;border-radius:0 12px 12px 0}
 .note{font-size:.84rem;color:var(--muted)}
 .err{color:#a3261c}
+.fb h2{margin-bottom:.2em}
+.fbi{border-top:1px solid var(--line);padding:12px 0;display:grid;gap:6px}
+.fbi p{margin:0;font-size:.95rem}
+.fbi .ks{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.9rem}
+.fbi .ks label{display:inline-flex;align-items:center;gap:6px;min-height:40px;cursor:pointer}
+.fbi .ks input{width:20px;height:20px;accent-color:var(--acc)}
+.fbi.on{background:var(--acc-soft);margin:0 -12px;padding:12px;border-radius:12px;border-top-color:transparent}
+textarea.txt{font:inherit;font-size:.92rem;padding:10px 12px;border:1px solid var(--line);border-radius:12px;width:100%;resize:vertical;min-height:2.6em;background:#fff}
+.upd{max-width:640px;margin:0 auto;padding:0 16px 28px;font-size:.78rem;color:var(--muted);text-align:center}
 .warnbox{background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:10px 14px;font-size:.9rem}
 </style>
 </head>
 <body>
 <main id="app" aria-live="polite"></main>
+<footer class="upd">อัปเดตล่าสุด 15 พ.ย. 2569 เวลา 00:45 น.</footer>
 <script src="avatar.js"></script>
 <script>
 (function () {
@@ -240,6 +250,42 @@ ul.pts{padding-left:1.1em;margin:0 0 1em}
       ${["I", "P", "C"].map(lab).join("")}
     </svg>`;
   }
+  /* After the result: optional per-item feedback on wording (tick "ambiguous" / "had to re-read", write a suggestion).
+     Sent separately to the sheet "ความเห็นรายข้อ"; one row per item the respondent ticked or commented on. */
+  function feedbackHtml() {
+    return `<section class="card fb" id="fb"><h2>ช่วยปรับคำถามให้เข้าใจง่ายขึ้น <span class="muted small">(ไม่บังคับ)</span></h2>
+      <p class="small muted">ติ๊กข้อที่อ่านแล้วงง กำกวม หรือต้องอ่านซ้ำถึงจะเข้าใจ แล้วเขียนสั้น ๆ ว่าควรใช้คำแบบไหน</p>
+      ${ITEMS.map(([k, , t]) => `<div class="fbi" id="fbi${k}"><p><b>ข้อ ${k}.</b> ${esc(t)}</p>
+        <div class="ks"><label><input type="checkbox" data-k="${k}" data-f="amb"> กำกวม / อ่านแล้วงง</label><label><input type="checkbox" data-k="${k}" data-f="reread"> ต้องอ่านซ้ำถึงจะเข้าใจ</label></div>
+        <textarea class="txt" rows="1" maxlength="500" data-k="${k}" aria-label="ความเห็นข้อ ${k}" placeholder="เช่น ข้อ ${k} อ่านแล้วกำกวม ควรใช้เป็น …"></textarea></div>`).join("")}
+      <div class="fbi"><p><b>ความเห็นอื่น ๆ</b></p><textarea class="txt" rows="2" maxlength="1000" data-k="0" aria-label="ความเห็นอื่น ๆ" placeholder="เช่น คำว่า … ใช้คำบ้าน ๆ ว่า … จะเข้าใจกว่า"></textarea></div>
+      <p class="err small" id="fbmsg" role="status"></p>
+      <button class="btn wide" id="fbsend" type="button">ส่งความเห็น</button></section>`;
+  }
+  function wireFeedback() {
+    const box = $("#fb"); if (!box) return;
+    box.onchange = e => { const k = e.target.dataset.k; if (!k || k === "0") return;
+      const on = box.querySelectorAll(`#fbi${k} input:checked`).length > 0 || box.querySelector(`#fbi${k} textarea`).value.trim();
+      $("#fbi" + k).classList.toggle("on", !!on); };
+    $("#fbsend").onclick = () => {
+      const items = []; let overall = "";
+      box.querySelectorAll("textarea").forEach(t => {
+        const k = +t.dataset.k, note = t.value.trim();
+        if (k === 0) { overall = note; return; }
+        const amb = box.querySelector(`input[data-k="${k}"][data-f="amb"]`).checked, rr = box.querySelector(`input[data-k="${k}"][data-f="reread"]`).checked;
+        if (amb || rr || note) items.push({ k, amb, reread: rr, note });
+      });
+      const msg = $("#fbmsg");
+      if (!items.length && !overall) { msg.textContent = "ยังไม่ได้ติ๊กหรือเขียนความเห็น ถ้าไม่มี ข้ามส่วนนี้ได้เลย"; return; }
+      if (!ENDPOINT) { msg.textContent = "เปิดนอกระบบ ความเห็นไม่ได้บันทึก"; return; }
+      const b = $("#fbsend"); b.disabled = true; msg.textContent = "กำลังส่ง…";
+      fetch(ENDPOINT, { method: "POST", credentials: "omit", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "feedback", fb: { id: st.id, label: st.label, items, overall } }) })
+        .then(r => r.json())
+        .then(j => { if (j && j.ok) box.innerHTML = `<h2>ขอบคุณสำหรับความเห็นครับ</h2><p class="small muted">บันทึกแล้ว ${items.length} ข้อ${overall ? " และความเห็นอื่น ๆ" : ""} ผู้วิจัยจะใช้ปรับถ้อยคำของแบบสอบถาม</p>`;
+                     else { b.disabled = false; msg.textContent = "ส่งไม่สำเร็จ" + (j && j.error ? " (" + j.error + ")" : "") + " ลองอีกครั้ง"; } })
+        .catch(() => { b.disabled = false; msg.textContent = "เชื่อมต่อไม่ได้ ลองอีกครั้ง"; });
+    };
+  }
   function result(s, how, msg) {
     const row = d => {
       const v = s[d];
@@ -255,8 +301,9 @@ ul.pts{padding-left:1.1em;margin:0 0 1em}
     app.innerHTML = `<span class="tag">ผลของคุณ</span><h1>สามด้านของความเชื่อเรื่องการควบคุมชีวิต</h1>${saved}
       <div class="card">${guide(lean, lean.replace(/<[^>]+>/g, ""))}${tri(s)}<div class="res">${["I", "P", "C"].map(row).join("")}</div>
       <p class="note">คะแนนแต่ละด้านแยกกัน คนหนึ่งสูงได้หลายด้านพร้อมกัน เช่น เชื่อทั้งในความพยายามของตัวเองและเชื่อว่าคนมีอำนาจมีผลด้วย ผลนี้ไม่ใช่การวินิจฉัยหรือการตัดสินว่าดีหรือไม่ดี</p></div>
+      ${feedbackHtml()}
       <div class="nav"><span></span><button class="btn ghost" id="again">เริ่มใหม่สำหรับคนถัดไป</button></div>`;
-    wireGuide();
+    wireGuide(); wireFeedback();
     const r = $("#retry"); if (r) r.onclick = send;
     $("#again").onclick = () => { hush(); reset(); intro(); };
     window.scrollTo(0, 0);

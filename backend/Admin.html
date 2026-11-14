@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="th">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Back office: sign-in check → three mean tiles → table of every set (newest first) → CSV download and link to the sheet. */
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1d2321;--muted:#5d6763;--line:#dedad1;--acc:#0f6b62;--I:#0f6b62;--P:#8a4b9a;--C:#b5651d;
+  --f:"IBM Plex Sans Thai",system-ui,sans-serif;--m:"IBM Plex Mono",ui-monospace,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:16px;line-height:1.55}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 48px;display:grid;gap:16px}
+h1{font-size:1.4rem;margin:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.who{font-size:.86rem;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.tile span{font-size:.82rem;color:var(--muted)}
+.tile b{display:block;font-size:1.6rem;font-variant-numeric:tabular-nums;line-height:1.2}
+.btn{font:inherit;font-weight:600;border:0;border-radius:12px;padding:10px 16px;min-height:44px;cursor:pointer;background:var(--ink);color:#fff;text-decoration:none;display:inline-flex;align-items:center}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:.8rem;color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--card)}
+td.n{text-align:right;font-family:var(--m);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;border-radius:99px;padding:1px 10px;font-size:.8rem;font-weight:600;color:#fff}
+.muted{color:var(--muted)}.small{font-size:.86rem}
+.err{color:#a3261c}
+</style>
+</head>
+<body>
+<main id="app"><p class="muted">กำลังตรวจสิทธิ์…</p></main>
+<script>
+(function () {
+  "use strict";
+  const app = document.getElementById("app");
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const NAME = { I: "ตัวเอง", P: "ผู้มีอำนาจ", C: "โชคชะตา", none: "ไม่เด่น" };
+  const fmt = iso => { if (!iso) return ""; const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }); };
+  let DATA = null;
+
+  function deny(msg) {
+    app.innerHTML = `<h1>หลังบ้าน · แบบทดสอบ IPC</h1><div class="card"><p class="err">${esc(msg)}</p>
+      <p class="small muted">หน้านี้เปิดได้เฉพาะบัญชี Google ที่เป็นเจ้าของชีต ให้เปิดผ่านลิงก์หลังบ้าน (ลิงก์ที่ต้องเข้าสู่ระบบ Google) แล้วเข้าสู่ระบบด้วยบัญชีนั้น</p></div>`;
+  }
+  function load() {
+    google.script.run.withSuccessHandler(draw).withFailureHandler(e => deny(e && e.message || "โหลดข้อมูลไม่สำเร็จ")).adminData();
+  }
+  function mean(rows, k) { const v = rows.map(r => r[k]).filter(x => x !== "" && x != null).map(Number); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : "–"; }
+
+  function draw(d) {
+    DATA = d; const R = d.rows;
+    app.innerHTML = `<div class="top"><h1>หลังบ้าน · แบบทดสอบ IPC</h1><span class="who" id="who"></span></div>
+      <p class="small muted">ระบบทดสอบมาตรวัด แยกจากข้อมูลวิจัย · คะแนนแต่ละด้าน 0–48 (24 = จุดกลาง)</p>
+      <div class="tiles"><div class="tile"><span>ชุดคำตอบทั้งหมด</span><b>${R.length}</b></div>
+        ${["I", "P", "C"].map(k => `<div class="tile"><span>เฉลี่ย ${NAME[k]} (${k})</span><b style="color:var(--${k})">${mean(R, k)}</b></div>`).join("")}</div>
+      <div class="acts"><button class="btn" id="csv">ดาวน์โหลด CSV ทุกข้อ</button><a class="btn ghost" href="${esc(d.sheetUrl)}" target="_blank" rel="noopener">เปิด Google Sheet</a><button class="btn ghost" id="reload">โหลดใหม่</button></div>
+      <div class="card tw">${R.length ? `<table><thead><tr><th>เวลา</th><th>ชื่อเล่น/รหัส</th><th>I</th><th>P</th><th>C</th><th>ด้านเด่น</th><th>ตอบ</th><th>ใช้เวลา</th></tr></thead><tbody>
+        ${R.map(r => `<tr><td>${fmt(r.received)}</td><td>${esc(r.label) || '<span class="muted">–</span>'}</td>${["I", "P", "C"].map(k => `<td class="n">${r[k] === "" ? "–" : esc(r[k])}</td>`).join("")}
+          <td>${r.lean ? `<span class="pill" style="background:${r.lean === "none" ? "var(--muted)" : `var(--${esc(r.lean)})`}">${NAME[r.lean] || esc(r.lean)}</span>` : "–"}</td>
+          <td class="n">${esc(r.answered)}/24</td><td class="n">${r.seconds === "" ? "–" : Math.round(r.seconds / 60 * 10) / 10 + " นาที"}</td></tr>`).join("")}</tbody></table>`
+        : `<p class="muted">ยังไม่มีคำตอบ</p>`}</div>`;
+    google.script.run.withSuccessHandler(w => { const el = document.getElementById("who"); if (el && w && w.email) el.textContent = "เข้าสู่ระบบเป็น " + w.email; }).whoAmI();
+    document.getElementById("csv").onclick = csv;
+    document.getElementById("reload").onclick = () => { app.innerHTML = '<p class="muted">กำลังโหลด…</p>'; load(); };
+  }
+  function csv() {
+    const H = DATA.header, q = v => { const s = String(v == null ? "" : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const body = [H.join(",")].concat(DATA.rows.slice().reverse().map(r => H.map(h => q(r[h])).join(","))).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + body], { type: "text/csv;charset=utf-8" }));
+    a.download = "ipc_test_" + new Date().toISOString().slice(0, 10) + ".csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  if (!(window.google && google.script && google.script.run)) deny("เปิดนอกระบบ Apps Script");
+  else google.script.run.withSuccessHandler(w => w && w.ok ? load() : deny("บัญชีนี้ไม่มีสิทธิ์เข้าหลังบ้าน" + (w && w.email ? " (" + w.email + ")" : " หรือยังไม่ได้เข้าสู่ระบบ Google"))).withFailureHandler(e => deny(e.message)).whoAmI();
+})();
+</script>
+</body>
+</html>

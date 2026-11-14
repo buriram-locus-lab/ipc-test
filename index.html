@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แบบทดสอบ IPC</title>
+<meta name="description" content="ระบบทดสอบมาตรวัด IPC ของ Levenson 24 ข้อ ไม่ใช่การเก็บข้อมูลวิจัย">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<style>
+/* One statement per screen, big tap targets for older respondents. Ink on warm paper; teal marks the chosen answer.
+   Screens: intro → 24 statements → check skipped → result (three bars on a 0–48 scale, 24 = neutral). */
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1d2321;--muted:#5d6763;--line:#dedad1;--acc:#0f6b62;--acc-soft:#e3f1ee;--warn:#8a5a00;--warn-soft:#fbf1dc;
+  --I:#0f6b62;--P:#8a4b9a;--C:#b5651d;--f:"IBM Plex Sans Thai",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:18px;line-height:1.6}
+main{max-width:640px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.5rem;line-height:1.3;margin:.2em 0 .4em}
+h2{font-size:1.2rem;margin:0 0 .4em}
+p{margin:0 0 .8em}
+.tag{display:inline-block;font-size:.8rem;font-weight:600;color:var(--warn);background:var(--warn-soft);border-radius:99px;padding:2px 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.muted{color:var(--muted)}.small{font-size:.86rem}
+.btn{font:inherit;font-weight:600;border:0;border-radius:14px;padding:14px 22px;min-height:52px;cursor:pointer;background:var(--ink);color:#fff}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.5}
+label.fld{display:grid;gap:4px;margin:14px 0}
+label.fld span{font-size:.92rem}
+input.txt{font:inherit;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;width:100%}
+input.txt:focus,.opt:focus-visible,.btn:focus-visible{outline:3px solid color-mix(in oklab,var(--acc) 45%,transparent);outline-offset:2px}
+ul.pts{padding-left:1.1em;margin:0 0 1em}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.88rem;color:var(--muted);margin-bottom:6px}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-bottom:18px}
+.bar i{display:block;height:100%;background:var(--acc);transition:width .25s}
+.stmt{font-size:1.3rem;line-height:1.55;font-weight:500;margin:0 0 18px;min-height:4.5em}
+.opts{display:grid;gap:8px}
+.opt{font:inherit;text-align:left;display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 16px;border:1.5px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);cursor:pointer}
+.opt .dot{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid #b9b4a8}
+.opt.on{border-color:var(--acc);background:var(--acc-soft);font-weight:600}
+.opt.on .dot{border-color:var(--acc);background:radial-gradient(circle,var(--acc) 0 45%,transparent 50%)}
+.opts .gap{height:6px}
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:18px}
+.link{font:inherit;background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:10px 4px;min-height:44px}
+.skipped{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
+.skipped button{font:inherit;border:1px solid var(--warn);color:var(--warn);background:var(--warn-soft);border-radius:10px;padding:6px 14px;min-height:44px;cursor:pointer}
+.res{display:grid;gap:12px;margin:8px 0 12px}
+/* result triangle: I top, P bottom-left, C bottom-right; rings at 12/24/36/48, 24 dashed = neutral */
+.tri{width:100%;max-width:400px;height:auto;display:block;margin:4px auto 0}
+.tri text{font-family:var(--f);fill:var(--ink)}
+.dim{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line)}
+.dim b{font-size:1.02rem}
+.dim .num{font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+.dim .num small{font-weight:400;color:var(--muted);font-size:.78rem}
+.dim p{grid-column:1/-1}
+/* guide: the researcher's own character as a small helper; tap it to hear the statement read aloud */
+.guide{display:flex;align-items:flex-end;gap:10px;margin:0 0 10px}
+.gfig{flex:none;width:58px;height:74px;padding:0;border:0;background:none;cursor:pointer;border-radius:12px}
+.gfig[disabled]{cursor:default}
+.gfig svg{width:100%;height:100%;display:block}
+.bubble{position:relative;margin:0 0 14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:7px 12px;font-size:.88rem;line-height:1.45;color:var(--muted)}
+.bubble::before{content:"";position:absolute;left:-7px;bottom:12px;width:12px;height:12px;background:#fff;border-left:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg)}
+.bubble b{color:var(--ink)}
+.talk .g-hd{animation:nod .5s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 95%}
+@keyframes nod{to{transform:rotate(-4deg) translateY(1px)}}
+@media (prefers-reduced-motion:reduce){.talk .g-hd{animation:none}}
+.dim p{font-size:.9rem;margin:0}
+.lean{border-left:4px solid var(--acc);background:var(--acc-soft);padding:12px 14px;border-radius:0 12px 12px 0}
+.note{font-size:.84rem;color:var(--muted)}
+.err{color:#a3261c}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:10px 14px;font-size:.9rem}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<script src="avatar.js"></script>
+<script>
+(function () {
+  "use strict";
+  const ITEMS = [
+    [1, "I", "การที่ฉันจะได้เป็นผู้นำหรือไม่ ขึ้นอยู่กับความสามารถของฉันเป็นหลัก"],
+    [2, "C", "ชีวิตของฉันถูกกำหนดโดยเหตุการณ์ที่เกิดขึ้นโดยบังเอิญเป็นส่วนใหญ่"],
+    [3, "P", "ฉันรู้สึกว่าสิ่งที่เกิดขึ้นในชีวิตของฉัน ถูกกำหนดโดยคนที่มีอำนาจหรือมีตำแหน่งสูงเป็นส่วนใหญ่"],
+    [4, "I", "การที่ฉันจะประสบอุบัติเหตุทางรถหรือไม่ ขึ้นอยู่กับว่าฉันขับขี่ดีแค่ไหนเป็นหลัก"],
+    [5, "I", "เมื่อฉันวางแผนไว้ ฉันค่อนข้างมั่นใจว่าจะทำให้สำเร็จได้"],
+    [6, "C", "หลายครั้งฉันไม่มีทางปกป้องผลประโยชน์ของตนเองจากเรื่องโชคร้ายที่เกิดขึ้นได้เลย"],
+    [7, "C", "เวลาที่ฉันได้สิ่งที่ต้องการ มักเป็นเพราะฉันโชคดี"],
+    [8, "P", "ถึงฉันจะมีความสามารถ ฉันก็จะไม่ได้รับมอบหมายให้เป็นผู้นำ ถ้าไม่เข้าหาคนที่มีอำนาจ"],
+    [9, "I", "การที่ฉันจะมีเพื่อนมากหรือน้อย ขึ้นอยู่กับว่าฉันเป็นคนดีแค่ไหน"],
+    [10, "C", "ฉันมักพบว่า อะไรจะเกิด มันก็ต้องเกิด"],
+    [11, "P", "ชีวิตของฉันถูกควบคุมโดยคนที่มีอำนาจหรือมีตำแหน่งสูงเป็นหลัก"],
+    [12, "C", "การที่ฉันจะประสบอุบัติเหตุทางรถหรือไม่ เป็นเรื่องของโชคเป็นส่วนใหญ่"],
+    [13, "P", "คนอย่างฉันมีโอกาสน้อยมากที่จะปกป้องผลประโยชน์ของตนเองได้ เมื่อผลประโยชน์นั้นขัดกับกลุ่มที่มีอำนาจต่อรองหรือมีพลังกดดันสูง"],
+    [14, "C", "การวางแผนล่วงหน้าไกล ๆ ไม่ใช่เรื่องฉลาดเสมอไปสำหรับฉัน เพราะหลายเรื่องกลายเป็นเรื่องของโชคดีหรือโชคร้าย"],
+    [15, "P", "การจะได้สิ่งที่ต้องการ ฉันต้องทำให้คนที่อยู่เหนือกว่าฉันพอใจ"],
+    [16, "C", "การที่ฉันจะได้เป็นผู้นำหรือไม่ ขึ้นอยู่กับว่าฉันโชคดีพอที่จะอยู่ถูกที่ถูกเวลาหรือเปล่า"],
+    [17, "P", "ถ้าคนสำคัญไม่ชอบฉัน ฉันก็คงมีเพื่อนไม่มากนัก"],
+    [18, "I", "ฉันสามารถกำหนดสิ่งที่จะเกิดขึ้นในชีวิตของฉันได้เป็นส่วนใหญ่"],
+    [19, "I", "โดยปกติฉันสามารถปกป้องผลประโยชน์ของตนเองได้"],
+    [20, "P", "การที่ฉันจะประสบอุบัติเหตุทางรถหรือไม่ ขึ้นอยู่กับผู้ขับขี่คนอื่นเป็นหลัก"],
+    [21, "I", "เวลาที่ฉันได้สิ่งที่ต้องการ มักเป็นเพราะฉันทำงานหนักเพื่อสิ่งนั้น"],
+    [22, "P", "เพื่อให้แผนของฉันสำเร็จ ฉันต้องทำให้แผนนั้นเข้ากับความต้องการของคนที่มีอำนาจเหนือฉัน"],
+    [23, "I", "ชีวิตของฉันถูกกำหนดโดยการกระทำของฉันเอง"],
+    [24, "C", "การที่ฉันจะมีเพื่อนน้อยหรือมาก เป็นเรื่องของโชคชะตาเป็นหลัก"]];
+  const KEY = { I: [1, 4, 5, 9, 18, 19, 21, 23], P: [3, 8, 11, 13, 15, 17, 20, 22], C: [2, 6, 7, 10, 12, 14, 16, 24] };
+  const SCALE = [[-3, "ไม่เห็นด้วยมาก"], [-2, "ไม่เห็นด้วยปานกลาง"], [-1, "ไม่เห็นด้วยเล็กน้อย"], [1, "เห็นด้วยเล็กน้อย"], [2, "เห็นด้วยปานกลาง"], [3, "เห็นด้วยมาก"]];   // Levenson order, no midpoint
+  const DIM = {
+    I: ["ตัวเอง", "เชื่อว่าสิ่งที่เกิดในชีวิตมาจากการกระทำและความพยายามของตัวเอง"],
+    P: ["ผู้มีอำนาจ", "เชื่อว่าคนที่มีอำนาจหรือตำแหน่งสูงกว่าเป็นคนกำหนดสิ่งที่เกิดในชีวิต"],
+    C: ["โชคชะตา", "เชื่อว่าสิ่งที่เกิดในชีวิตเป็นเรื่องของโชค ดวง หรือความบังเอิญ"] };
+  const $ = s => document.querySelector(s), app = $("#app");
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  /* Answers go to the Apps Script web app of the test sheet (deployment "หน้าแบบทดสอบ": Execute as Me, Anyone).
+     Sent as text/plain without cookies, so no sign-in and no multi-account /u/N/ problem. */
+  const ENDPOINT = "https://script.google.com/macros/s/AKfycbxm8nwIk8xRGLhKh7eVMV-_8YNPiddlPaX8ebsuptyj1cRWzsUExVTljHP7IGAptaaT/exec";
+  const newId = () => { const a = new Uint8Array(9); crypto.getRandomValues(a); return Array.from(a, b => b.toString(36).padStart(2, "0")).join("").slice(0, 16); };
+  /* guide character: the researcher's slide character (pose A, a wai). Tapping it reads the statement aloud in Thai,
+     only if this device has a Thai voice; otherwise it is a still figure with short progress notes. */
+  const LOOK = { pose: "A", sex: "ชาย", skin: 1, shirt: 1, hairC: 0, flip: false, badge: false };
+  let gid = 0;
+  const SPEECH = "speechSynthesis" in window;
+  let thai = null;
+  const findThai = () => { if (!SPEECH) return; const v = speechSynthesis.getVoices().find(x => /^th/i.test(x.lang)); if (v) thai = v; };
+  if (SPEECH) { findThai(); speechSynthesis.onvoiceschanged = findThai; }
+  function guide(msg, say) {
+    let fig = "";
+    try { fig = window.Avatar ? Avatar.svg(LOOK, "g" + (++gid)) : ""; } catch (e) { fig = ""; }
+    if (!fig) return msg ? `<p class="bubble" style="margin-left:0">${msg}</p>` : "";
+    const can = !!(say && thai);
+    if (!msg && !can) return "";
+    return `<div class="guide"><button class="gfig" type="button" ${can ? `data-say="${esc(say)}" aria-label="แตะเพื่อฟังข้อความ"` : 'disabled aria-hidden="true" tabindex="-1"'}>${fig}</button>
+      <p class="bubble">${msg || "แตะผมเพื่อฟังข้อความ"}</p></div>`;
+  }
+  function wireGuide() {
+    const b = app.querySelector(".gfig[data-say]"); if (!b) return;
+    b.onclick = () => {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(b.dataset.say); u.lang = "th-TH"; u.voice = thai; u.rate = 0.9;
+      u.onstart = () => b.classList.add("talk"); u.onend = u.onerror = () => b.classList.remove("talk");
+      speechSynthesis.speak(u);
+    };
+  }
+  const hush = () => { if (SPEECH) speechSynthesis.cancel(); };
+  let st;
+  const reset = () => { st = { id: newId(), label: "", started: null, finished: null, i: 0, ans: {}, skip: {} }; };
+  reset();
+
+  function score(a) {
+    const o = {}; let n = 0;
+    ["I", "P", "C"].forEach(d => { let s = 0, g = 0; KEY[d].forEach(k => { if (a[k]) { s += a[k]; g++; } }); o[d] = g === 8 ? s + 24 : null; n += g; });
+    const have = ["I", "P", "C"].filter(d => o[d] != null).sort((x, y) => o[y] - o[x]);
+    o.lean = have.length === 3 ? (o[have[0]] - o[have[1]] <= 3 ? "none" : have[0]) : "";
+    o.answered = n; return o;
+  }
+
+  function intro() {
+    app.innerHTML = `<span class="tag">ระบบทดสอบมาตรวัด · ไม่ใช่การเก็บข้อมูลวิจัย</span>
+      <h1>คุณเชื่อว่าอะไรกำหนดชีวิตคุณ</h1>
+      ${guide("สวัสดีครับ ผมจะอยู่มุมนี้ตลอดแบบทดสอบ" + (thai ? " ถ้าอ่านไม่ถนัด <b>แตะผม</b> แล้วผมจะอ่านข้อความให้ฟัง" : ""), thai ? "สวัสดีครับ ถ้าอ่านไม่ถนัด แตะผม แล้วผมจะอ่านข้อความให้ฟัง" : "")}
+      <div class="card">
+        <p>แบบทดสอบ IPC ของ Levenson มีข้อความ 24 ข้อ ใช้เวลาประมาณ 5–8 นาที ตอบเสร็จจะเห็นผลทันที</p>
+        <ul class="pts"><li>ไม่มีคำตอบถูกหรือผิด ตอบตามที่รู้สึกจริง</li><li>ต้องตอบครบทุกข้อจึงจะคิดผลได้ ถ้าไม่อยากทำต่อ ปิดหน้านี้ได้เลย ระบบจะไม่บันทึกอะไร</li><li>ไม่ถามชื่อจริง ไม่ถามเบอร์โทร</li></ul>
+        <label class="fld"><span>ชื่อเล่นหรือรหัส <span class="muted">(ไม่บังคับ ใช้ให้ผู้ทดสอบจำได้ว่าเป็นชุดของใคร)</span></span><input class="txt" id="label" maxlength="40" autocomplete="off" value="${esc(st.label)}"></label>
+        <button class="btn wide" id="go">เริ่มทำแบบทดสอบ</button>
+      </div>`;
+    wireGuide();
+    $("#go").onclick = () => { hush(); st.label = $("#label").value.trim(); st.started = st.started || new Date().toISOString(); st.i = 0; item(); };
+  }
+
+  function item() {
+    const [k, , text] = ITEMS[st.i], done = Object.keys(st.ans).length + Object.keys(st.skip).length;
+    app.innerHTML = `<div class="top"><span>ข้อ ${k} จาก 24</span><span>ตอบแล้ว ${Object.keys(st.ans).length}</span></div>
+      <div class="bar"><i style="width:${(st.i / 24 * 100).toFixed(1)}%"></i></div>
+      ${guide(note(), text)}
+      <p class="muted small">ท่านเห็นด้วยกับข้อความนี้มากน้อยเพียงใด</p>
+      <p class="stmt">${esc(text)}</p>
+      <div class="opts" role="radiogroup" aria-label="ระดับความเห็น">${SCALE.map(([v, l], j) => `${j === 3 ? '<div class="gap"></div>' : ""}<button class="opt ${st.ans[k] === v ? "on" : ""}" role="radio" aria-checked="${st.ans[k] === v}" data-v="${v}"><span class="dot"></span>${l}</button>`).join("")}</div>
+      <div class="nav"><button class="link" id="back">${st.i ? "← ข้อก่อนหน้า" : "← หน้าแรก"}</button>${st.ans[k] ? `<button class="link" id="fwd">ข้อถัดไป →</button>` : "<span></span>"}</div>`;
+    wireGuide();
+    app.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+      hush(); st.ans[k] = +b.dataset.v; delete st.skip[k];
+      app.querySelectorAll(".opt").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); });
+      setTimeout(next, 220);
+    });
+    $("#back").onclick = () => { hush(); if (st.i) { st.i--; item(); } else intro(); };
+    const fw = $("#fwd"); if (fw) fw.onclick = next;      // every item must be answered; no skip
+    window.scrollTo(0, 0);
+  }
+  function note() {                       // short progress notes at a few points only
+    const left = 24 - st.i;
+    if (st.i === 0) return "ไม่มีถูกผิด ตอบตามที่รู้สึกจริงครับ";
+    if (st.i === 12) return "<b>ครึ่งทางแล้ว</b> อีก 12 ข้อครับ";
+    if (left <= 3) return `อีก <b>${left}</b> ข้อก็เสร็จแล้วครับ`;
+    return "";
+  }
+  function next() { hush(); if (st.fix) { st.fix = false; return check(); } if (st.i < 23) { st.i++; item(); } else check(); }   // a skipped item answered from the check screen goes back there
+
+  function check() {                   // all 24 are required: if one is somehow empty, go back to it
+    const miss = ITEMS.findIndex(x => !st.ans[x[0]]);
+    if (miss < 0) return send();
+    st.i = miss; item();
+  }
+
+  function send() {
+    st.finished = st.finished || new Date().toISOString();
+    const local = score(st.ans);
+    if (!ENDPOINT) return result(local, "local");
+    app.innerHTML = `<div class="card"><p>กำลังส่งคำตอบ…</p></div>`;
+    const rec = { id: st.id, label: st.label, started: st.started, finished: st.finished, answers: st.ans };
+    fetch(ENDPOINT, { method: "POST", credentials: "omit", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "submit", rec }) })
+      .then(r => r.json())
+      .then(j => j && j.ok ? result(j.scores || local, "saved") : result(local, "failed", j && j.error))
+      .catch(() => result(local, "failed", "เชื่อมต่อไม่ได้"));
+  }
+
+  /* Triangle chart. Each corner is one subscale; distance from the centre = score (0 at the centre, 48 at the corner). */
+  function tri(s) {
+    const W = 340, H = 300, cx = 170, cy = 170, R = 118, A = { I: -90, P: 150, C: 30 };
+    const pt = (d, f) => { const a = A[d] * Math.PI / 180; return [cx + R * f * Math.cos(a), cy + R * f * Math.sin(a)]; };
+    const poly = f => ["I", "P", "C"].map(d => pt(d, f).map(n => n.toFixed(1)).join(",")).join(" ");
+    const top = s.lean && s.lean !== "none" ? s.lean : "";
+    const have = ["I", "P", "C"].filter(d => s[d] != null);
+    const P = have.map(d => pt(d, s[d] / 48).map(n => n.toFixed(1)).join(","));
+    const col = top ? `var(--${top})` : "var(--ink)";
+    const lab = d => {
+      const [x, y] = pt(d, 1), dy = d === "I" ? -34 : 28, anc = d === "I" ? "middle" : d === "P" ? "start" : "end";
+      const xx = d === "I" ? x : d === "P" ? x - 14 : x + 14, big = d === top;
+      return `<text x="${xx.toFixed(1)}" y="${(y + dy).toFixed(1)}" text-anchor="${anc}" font-size="${big ? 18 : 16}" font-weight="${big ? 700 : 500}" style="fill:var(--${d})">${DIM[d][0]}</text>
+        <text x="${xx.toFixed(1)}" y="${(y + dy + 17).toFixed(1)}" text-anchor="${anc}" font-size="15" style="fill:var(--muted)">${s[d] == null ? "ตอบไม่ครบ" : s[d] + " / 48"}</text>`;
+    };
+    return `<svg class="tri" viewBox="0 -12 ${W} ${H + 24}" role="img" aria-label="กราฟสามเหลี่ยม ตัวเอง ${s.I ?? "ไม่มี"} ผู้มีอำนาจ ${s.P ?? "ไม่มี"} โชคชะตา ${s.C ?? "ไม่มี"} จาก 48">
+      ${[1, .75, .5, .25].map(f => `<polygon points="${poly(f)}" fill="${f === 1 ? "#fbfaf7" : "none"}" stroke="${f === .5 ? "#9a948a" : "#dedad1"}" stroke-width="${f === .5 ? 1.4 : 1}" ${f === .5 ? 'stroke-dasharray="5 4"' : ""}/>`).join("")}
+      ${["I", "P", "C"].map(d => { const [x, y] = pt(d, 1); return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#dedad1"/>`; }).join("")}
+      <text x="${(cx + 6).toFixed(1)}" y="${(cy - R * .5 + 4).toFixed(1)}" font-size="12" style="fill:var(--muted)">24 กลาง</text>
+      ${P.length === 3 ? `<polygon points="${P.join(" ")}" fill="${col}" fill-opacity=".18" stroke="${col}" stroke-width="2.5" stroke-linejoin="round"/>` : P.length === 2 ? `<polyline points="${P.join(" ")}" fill="none" stroke="${col}" stroke-width="2.5"/>` : ""}
+      ${have.map(d => { const [x, y] = pt(d, s[d] / 48); return `${d === top ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="11" fill="none" stroke="var(--${d})" stroke-width="2"/>` : ""}<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${d === top ? 6.5 : 5}" style="fill:var(--${d})" stroke="#fff" stroke-width="2"/>`; }).join("")}
+      ${["I", "P", "C"].map(lab).join("")}
+    </svg>`;
+  }
+  function result(s, how, msg) {
+    const row = d => {
+      const v = s[d];
+      const side = v == null ? "ตอบไม่ครบ 8 ข้อ จึงไม่คิดคะแนนด้านนี้" : v > 24 ? "สูงกว่าจุดกลาง: โดยรวมเห็นด้วยกับข้อความด้านนี้" : v < 24 ? "ต่ำกว่าจุดกลาง: โดยรวมไม่เห็นด้วยกับข้อความด้านนี้" : "อยู่ตรงจุดกลางพอดี";
+      return `<div class="dim"><b style="color:var(--${d})">${DIM[d][0]}</b><span class="num">${v == null ? "–" : v}<small> / 48</small></span>
+        <p>${DIM[d][1]}<br><span class="muted">${side}</span></p></div>`;
+    };
+    const lean = s.lean === "none" ? "ไม่มีด้านไหนเด่นชัด ด้านที่สูงที่สุดกับรองลงมาห่างกันไม่เกิน 3 คะแนน"
+      : s.lean ? `ด้านที่เด่นที่สุดคือ <b>${DIM[s.lean][0]}</b>` : "ตอบไม่ครบ จึงบอกด้านที่เด่นไม่ได้";
+    const saved = how === "saved" ? `<p class="note">บันทึกแล้ว ขอบคุณที่ช่วยทดสอบครับ</p>`
+      : how === "failed" ? `<p class="warnbox">ส่งคำตอบไม่สำเร็จ${msg ? " (" + esc(msg) + ")" : ""} ผลด้านล่างคำนวณในเครื่องนี้ <button class="link" id="retry">ลองส่งอีกครั้ง</button></p>`
+      : `<p class="warnbox">เปิดนอกระบบ คำตอบไม่ได้บันทึก ผลคำนวณในเครื่องนี้</p>`;
+    app.innerHTML = `<span class="tag">ผลของคุณ</span><h1>สามด้านของความเชื่อเรื่องการควบคุมชีวิต</h1>${saved}
+      <div class="card">${guide(lean, lean.replace(/<[^>]+>/g, ""))}${tri(s)}<div class="res">${["I", "P", "C"].map(row).join("")}</div>
+      <p class="note">คะแนนแต่ละด้านแยกกัน คนหนึ่งสูงได้หลายด้านพร้อมกัน เช่น เชื่อทั้งในความพยายามของตัวเองและเชื่อว่าคนมีอำนาจมีผลด้วย ผลนี้ไม่ใช่การวินิจฉัยหรือการตัดสินว่าดีหรือไม่ดี</p></div>
+      <div class="nav"><span></span><button class="btn ghost" id="again">เริ่มใหม่สำหรับคนถัดไป</button></div>`;
+    wireGuide();
+    const r = $("#retry"); if (r) r.onclick = send;
+    $("#again").onclick = () => { hush(); reset(); intro(); };
+    window.scrollTo(0, 0);
+  }
+  intro();
+})();
+</script>
+</body>
+</html>

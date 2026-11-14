@@ -149,6 +149,7 @@ details li{margin:2px 0}
     a.href = URL.createObjectURL(new Blob(["﻿" + body], { type: "text/csv;charset=utf-8" }));
     a.download = "ipc_test_" + new Date().toISOString().slice(0, 10) + ".csv"; document.body.appendChild(a); a.click(); a.remove();
   }
+  setTimeout(() => { if (!DATA && /ตรวจสิทธิ์/.test(app.textContent)) deny("รอนานเกินไป ระบบยังตอบกลับไม่ได้ มักเกิดจากเบราว์เซอร์เข้าสู่ระบบ Google ไว้หลายบัญชี ให้เปิดลิงก์นี้ในหน้าต่างไม่ระบุตัวตน (Ctrl+Shift+N) แล้วเข้าสู่ระบบด้วยบัญชีเจ้าของชีตบัญชีเดียว"); }, 15000);
   if (!(window.google && google.script && google.script.run)) deny("เปิดนอกระบบ Apps Script");
   else google.script.run.withSuccessHandler(w => w && w.ok ? load() : deny("บัญชีนี้ไม่มีสิทธิ์เข้าหลังบ้าน" + (w && w.email ? " (" + w.email + ")" : " หรือยังไม่ได้เข้าสู่ระบบ Google"))).withFailureHandler(e => deny(e.message)).whoAmI();
 })();

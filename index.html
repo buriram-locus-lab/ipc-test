@@ -84,7 +84,7 @@ textarea.txt{font:inherit;font-size:.92rem;padding:10px 12px;border:1px solid va
 </head>
 <body>
 <main id="app" aria-live="polite"></main>
-<footer class="upd">อัปเดตล่าสุด 15 พ.ย. 2569 เวลา 00:45 น.</footer>
+<footer class="upd">อัปเดตล่าสุด 15 พ.ย. 2569 เวลา 01:05 น.</footer>
 <script src="avatar.js"></script>
 <script>
 (function () {
@@ -255,18 +255,22 @@ textarea.txt{font:inherit;font-size:.92rem;padding:10px 12px;border:1px solid va
   function feedbackHtml() {
     return `<section class="card fb" id="fb"><h2>ช่วยปรับคำถามให้เข้าใจง่ายขึ้น <span class="muted small">(ไม่บังคับ)</span></h2>
       <p class="small muted">ติ๊กข้อที่อ่านแล้วงง กำกวม หรือต้องอ่านซ้ำถึงจะเข้าใจ แล้วเขียนสั้น ๆ ว่าควรใช้คำแบบไหน</p>
+      <button class="btn ghost wide fbskip" type="button">ข้ามส่วนนี้ ไม่ให้ความเห็น</button>
       ${ITEMS.map(([k, , t]) => `<div class="fbi" id="fbi${k}"><p><b>ข้อ ${k}.</b> ${esc(t)}</p>
         <div class="ks"><label><input type="checkbox" data-k="${k}" data-f="amb"> กำกวม / อ่านแล้วงง</label><label><input type="checkbox" data-k="${k}" data-f="reread"> ต้องอ่านซ้ำถึงจะเข้าใจ</label></div>
         <textarea class="txt" rows="1" maxlength="500" data-k="${k}" aria-label="ความเห็นข้อ ${k}" placeholder="เช่น ข้อ ${k} อ่านแล้วกำกวม ควรใช้เป็น …"></textarea></div>`).join("")}
       <div class="fbi"><p><b>ความเห็นอื่น ๆ</b></p><textarea class="txt" rows="2" maxlength="1000" data-k="0" aria-label="ความเห็นอื่น ๆ" placeholder="เช่น คำว่า … ใช้คำบ้าน ๆ ว่า … จะเข้าใจกว่า"></textarea></div>
       <p class="err small" id="fbmsg" role="status"></p>
-      <button class="btn wide" id="fbsend" type="button">ส่งความเห็น</button></section>`;
+      <button class="btn wide" id="fbsend" type="button">ส่งความเห็น</button>
+      <button class="btn ghost wide fbskip" type="button" style="margin-top:8px">ข้ามส่วนนี้ ไม่ให้ความเห็น</button></section>`;
   }
   function wireFeedback() {
     const box = $("#fb"); if (!box) return;
     box.onchange = e => { const k = e.target.dataset.k; if (!k || k === "0") return;
       const on = box.querySelectorAll(`#fbi${k} input:checked`).length > 0 || box.querySelector(`#fbi${k} textarea`).value.trim();
       $("#fbi" + k).classList.toggle("on", !!on); };
+    box.querySelectorAll(".fbskip").forEach(b => b.onclick = () => {
+      box.innerHTML = `<p class="small muted" style="margin:0">ข้ามส่วนความเห็นแล้ว ขอบคุณที่ช่วยทำแบบทดสอบครับ</p>`; box.scrollIntoView({ block: "nearest" }); });
     $("#fbsend").onclick = () => {
       const items = []; let overall = "";
       box.querySelectorAll("textarea").forEach(t => {
